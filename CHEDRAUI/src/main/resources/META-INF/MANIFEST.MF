@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+
+Dependencies: mx.com.meda.puntosinfin.configuracion
+Logging-Profile: meda
