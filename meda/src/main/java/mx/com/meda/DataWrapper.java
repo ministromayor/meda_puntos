@@ -31,12 +31,10 @@ public class DataWrapper {
 	private String peerId = null;
 	private Socio peer = null;
 
-
 	public DataWrapper(Socio peer) {
 		this(peer.getNombre());
 		this.peer = peer;
 	}
-
 
 	public DataWrapper(String peerId) {
 		try {
@@ -116,14 +114,7 @@ public class DataWrapper {
 	}*/
 
 	public void cargarLinea(int tipo_de_archivo, String[] values) {
-		StringBuilder sb = new StringBuilder();
 		try {
-			sb.append("insert into CrgArchivos values(?,?,");
-			for(int i = 0; i < (values.length)-1; i++) {
-				sb.append("?,");
-			}
-			sb.append("?);");
-
 			String ps_material = "insert into CrgArchivos values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			log.debug("El material para la sentencia peparada es: "+ps_material);
 
@@ -133,7 +124,7 @@ public class DataWrapper {
 			pstm.setInt(2, tipo_de_archivo);
 			for(int i = 0; i < values.length; i++) {
 				pstm.setString(i+3, values[i]);
-				log.debug("Estableciendo el valor del campo: "+(i+3));
+				log.debug("Estableciendo el valor del campo: "+(i+3)+" en: "+values[i]);
 			}
 			int nulls_offset = (values.length + 3);
 			for(int i = nulls_offset; i <= 18; i++) {
@@ -142,6 +133,7 @@ public class DataWrapper {
 			}
 			//optimizar utilizando addBatch()
 			pstm.executeUpdate();
+			log.debug("Se insertaron los registros en la base de datos.");
 		} catch (SQLException ex) {
 			log.error("No se pudo insertar un registro.");
 			log.error(ex.getMessage());
@@ -158,6 +150,7 @@ public class DataWrapper {
 			cstmt.setInt(3, tipo_de_archivo);
 			cstmt.setString(4, nombre_de_archivo);
 			ResultSet rs = cstmt.executeQuery();
+			log.debug("Se invocó al sp procArchivoCarga con los parametros ("+peer.getId()+", "+tipo_de_archivo+", "+nombre_de_archivo+").");
 			if(rs != null && !rs.isBeforeFirst()) {
 				log.error("No hay registros en el retorno de la ejecución del sp: procArchivoCarga");;
 			} else {

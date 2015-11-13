@@ -29,6 +29,8 @@ import mx.com.meda.TipoDeArchivo;
 
 public class HitssProcessor extends AliadoProcessor implements Processor {
 
+	private String file_name = null;
+
 	public HitssProcessor() {
 		super(Socio.HITSS);
 		log = Logger.getLogger(this.getClass());
@@ -40,7 +42,7 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 		String[] trailer = null;
 		try {
 			if( cliente.conectar() )  {
-				String file_name = cliente.lastAddedInFileName(buildInputFilename());
+				file_name = cliente.lastAddedInFileName(buildInputFilename());
 				log.info("Se cargará el achivo: "+file_name);
 				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
 				String linea = null;	
@@ -66,8 +68,10 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 						lines++;
 					}
 				}
-				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ALTAS.getId(), file_name) ) {
-					this.procesarSalida();
+				if( validarTrailer(trailer, lines) ) {
+				//if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ALTAS.getId(), file_name) ) {
+					//this.procesarSalida();
+					log.info("Se terminó el procesamiento exitosamente.");
 				} else {
 					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
 				}
@@ -82,27 +86,45 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 		}
 	}
 
+	public boolean workarround() {
+		try {
+			String file_name = buildInputFilename();
+			if(dw.procArchivoCarga(TipoDeArchivo.RECIBE_ALTAS.getId(), file_name)) {
+				log.info("Se ejecutó el procesamiento de la carga en bbdd.");
+			} else {
+				log.error("No Se ejecutó el procesamiento de la carga en bbdd.");
+			}
+		} catch( Exception ex ) {
+			ex.printStackTrace();
+		} finally {
+			return true;
+		}
+	}
+
 	public boolean procesarSalida() {
 		try {
-			String out_filename = buildOutputFilename();
-			log.debug("Se comenzará la generación del archivo de salida ("+out_filename+")");
-			List<Object[]> filas = dw.selArchivoSalida(TipoDeArchivo.RESPUESTA_ALTAS.getId());
-			if(!filas.isEmpty()) {
-				for(Object[] arreglo : filas) {
-					StringBuilder sb = new StringBuilder();
-					for(int i = 0; i < (out_campos-1); i++) {
-						sb.append(arreglo[i]);
-						sb.append("|");
+			if(cliente.conectar()) {
+				String out_filename = buildOutputFilename();
+				log.debug("Se comenzará la generación del archivo de salida ("+out_filename+")");
+				List<Object[]> filas = dw.selArchivoSalida(TipoDeArchivo.RESPUESTA_ALTAS.getId());
+				if(!filas.isEmpty()) {
+					for(Object[] arreglo : filas) {
+						StringBuilder sb = new StringBuilder();
+						for(int i = 0; i < (out_campos-1); i++) {
+							sb.append(arreglo[i]);
+							sb.append("|");
+						}
+						sb.append(arreglo[out_campos-1]);
+						String linea = sb.toString();
+						log.debug("<<"+linea);
+						escribirRespuesta(linea);
 					}
-					sb.append(arreglo[out_campos-1]);
-					String linea = sb.toString();
-					log.debug("<<"+linea);
-					escribirRespuesta(linea);
+					InputStream salida = recuperarRespuesta();
+					cliente.uploadOutFile(salida, out_filename);
+				} else {
+					log.warn("No se obtuvieron registros para generar un archivo de respuesta.");
 				}
-				InputStream salida = recuperarRespuesta();
-				cliente.uploadOutFile(salida, out_filename);
-			} else {
-				log.warn("No se obtuvieron registros para generar un archivo de respuesta.");
+				cliente.desconectar();
 			}
 		} catch( Exception ex ) {
 			ex.printStackTrace();

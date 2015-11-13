@@ -40,40 +40,46 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 		log.debug("Se comenzará la lectura del archivo de entrada.");
 		int lines = 0;
 		String[] trailer = null;
+		String file_name = "";
 		try {
 			if( ftp_client.conectar() )  {
-				String file_name = ftp_client.lastAddedInFileName(buildInputFilename());
+				file_name = ftp_client.lastAddedInFileName(buildInputFilename());
 				log.info("Se cargará el achivo: "+file_name);
-				BufferedReader br = new BufferedReader(new InputStreamReader(ftp_client.readLastInFile(file_name)));
-				String linea = null;	
-				while( (linea = br.readLine()) != null ) {
-					log.debug(">>"+linea);
-					String[] values = new String[in_campos+1];
-					values[0] = file_name;
-					log.debug("Se separará la cadena con \""+in_separador+"\"");
-					String[] tokens = linea.split(Pattern.quote(in_separador));
-
-					if(((tokens.length != in_campos) && br.ready()) ||
-						((!br.ready() && !in_trailer) && (tokens.length != in_campos))) {
-						log.error("La linea ["+linea+"] contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
-						tokens = null;
-					} else if(!br.ready() && in_trailer) {
-						log.debug("Se considerará la cadena "+linea+" como trailer.");
-						trailer = tokens;
-						tokens = null;
-					} 
-					if(tokens != null ) {
-						System.arraycopy(tokens, 0, values, 1, in_campos);
-						dw.cargarLinea(TipoDeArchivo.RECIBE_TICKETS.getId(), values);
-						lines++;
+				InputStream ftp_is = ftp_client.readLastInFile(file_name);
+				if(ftp_is != null) {
+					BufferedReader br = new BufferedReader(new InputStreamReader(ftp_is));
+					String linea = null;	
+					while( (linea = br.readLine()) != null ) {
+						log.debug(">>"+linea);
+						String[] values = new String[in_campos+1];
+						values[0] = file_name;
+						log.debug("Se separará la cadena con \""+in_separador+"\"");
+						String[] tokens = linea.split(Pattern.quote(in_separador));
+	
+						if(((tokens.length != in_campos) && br.ready()) ||
+							((!br.ready() && !in_trailer) && (tokens.length != in_campos))) {
+							log.error("La linea ["+linea+"] contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
+							tokens = null;
+						} else if(!br.ready() && in_trailer) {
+							log.debug("Se considerará la cadena "+linea+" como trailer.");
+							trailer = tokens;
+							tokens = null;
+						} 
+						if(tokens != null ) {
+							System.arraycopy(tokens, 0, values, 1, in_campos);
+							dw.cargarLinea(TipoDeArchivo.RECIBE_TICKETS.getId(), values);
+							lines++;
+						}
 					}
-				}
-				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
-					log.info("Se completó la recepción y procesamiento de archivos de datos.");
+					if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
+						log.info("Se completó la recepción y procesamiento de archivos de datos.");
+					} else {
+						log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+					}
+					br.close();
 				} else {
-					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+					log.error("No existe el archivo "+file_name+" en el servidor ftp.");
 				}
-				br.close();
 				ftp_client.desconectar();
 			}
 		} catch( Exception ex ) {
@@ -161,9 +167,6 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 		return trailer;
 	}
 
-
-
-
 	private String buildInputFilename() {
 		String date_format = "ddMMyyyy";
 		DateFormat df = new SimpleDateFormat(date_format);
@@ -197,6 +200,10 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 			flag = true;
 		}
 		return flag;
+	}
+	
+	public boolean workarround() {
+		return true;
 	}
 
 }

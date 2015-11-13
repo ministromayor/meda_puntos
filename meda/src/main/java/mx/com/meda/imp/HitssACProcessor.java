@@ -86,6 +86,7 @@ public class HitssACProcessor extends AliadoProcessor implements Processor {
 		try {
 			String out_filename = buildOutputFilename();
 			log.debug("Se comenzará la generación del archivo de salida ("+out_filename+")");
+			cliente = new SFTPClient(Socio.HITSS_SALIDA);
 			if(cliente.conectar()) {
 				List<Object[]> filas = dw.selArchivoSalida(TipoDeArchivo.RESPUESTA_ACRETIDACIONES.getId());
 				if(!filas.isEmpty()) {
@@ -199,6 +200,10 @@ public class HitssACProcessor extends AliadoProcessor implements Processor {
 			flag = true;
 		}
 		return flag;
+	}
+
+	public boolean workarround() {
+		return true;
 	}
 
 }

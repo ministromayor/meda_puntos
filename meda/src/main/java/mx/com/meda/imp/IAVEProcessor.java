@@ -115,4 +115,8 @@ public class IAVEProcessor extends AliadoProcessor implements Processor {
 		return flag;
 	}
 
+	public boolean workarround() {
+		return true;
+	}
+
 }

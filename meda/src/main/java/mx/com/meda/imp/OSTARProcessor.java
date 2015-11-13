@@ -45,7 +45,7 @@ public class OSTARProcessor extends AliadoProcessor implements Processor {
 				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
 				String linea = null;	
 				while( (linea = br.readLine()) != null ) {
-					log.info(">>"+linea);
+					log.debug(">>"+linea);
 					String[] values = new String[in_campos+1];
 					values[0] = file_name;
 					log.debug("Se separará la cadena con \""+in_separador+"\"");
@@ -56,7 +56,7 @@ public class OSTARProcessor extends AliadoProcessor implements Processor {
 						log.error("La linea ["+linea+"] contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
 						tokens = null;
 					} else if(!br.ready() && in_trailer) {
-						log.info("Se considerará la cadena "+linea+" como trailer.");
+						log.info("TRAILER= "+linea);
 						trailer = tokens;
 						tokens = null;
 					} 
@@ -68,6 +68,7 @@ public class OSTARProcessor extends AliadoProcessor implements Processor {
 				}
 				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ACREDITACIONES.getId(), file_name) ) {
 					this.procesarSalida();
+					log.info("Se terminó el procesamiento exitosamente.");
 				} else {
 					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
 				}
@@ -113,6 +114,10 @@ public class OSTARProcessor extends AliadoProcessor implements Processor {
 			flag = true;
 		}
 		return flag;
+	}
+
+	public boolean workarround() {
+		return true;
 	}
 
 }

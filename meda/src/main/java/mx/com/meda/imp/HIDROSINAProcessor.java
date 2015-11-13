@@ -73,4 +73,8 @@ public class HIDROSINAProcessor extends AliadoProcessor implements Processor {
 		return true;
 	}
 
+	public boolean workarround() {
+		return true;
+	}
+
 }
