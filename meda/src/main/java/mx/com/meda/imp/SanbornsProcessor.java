@@ -81,6 +81,7 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 					log.error("No existe el archivo "+file_name+" en el servidor ftp.");
 				}
 				ftp_client.desconectar();
+				log.info("Se terminó el procesamiento de entrada exitosamente.");
 			}
 		} catch( Exception ex ) {
 			log.error("No se puedo procesar la entrada.");
@@ -136,6 +137,7 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 					log.warn("No se obtuvieron registros para generar un archivo de respuesta.");
 				}
 				ftp_client.desconectar();
+				log.info("Se terminó el procesamiento de salida exitosamente.");
 			}
 		} catch( Exception ex ) {
 			log.error("Error al abrir o cerrar la conexión con el sftp.");

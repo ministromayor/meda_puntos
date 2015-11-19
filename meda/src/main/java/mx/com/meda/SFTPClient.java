@@ -155,6 +155,18 @@ public class SFTPClient {
 		return is;
 	}
 
+	public void backupInFile(String name) throws SftpException {
+		String path = this.lastAddedFileName(cfg_in_dir, name);
+		String date_format = "yyyyMMddHHmmss";
+		DateFormat df = new SimpleDateFormat(date_format);
+		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
+		String date = df.format(new Date());
+		String n_path = path+"_"+date;
+		log.debug("Se respaldará el archivo "+path+" como: "+n_path);
+		sftp.rename(path, n_path);
+
+	}
+
 	public void uploadOutFile(InputStream data, String name) throws SftpException {
 		String path = this.cfg_out_dir+"/"+name;
 		log.info("Se subirá el archivo: "+path);

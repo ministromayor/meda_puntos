@@ -12,9 +12,15 @@ import java.io.PipedOutputStream;
 import java.io.BufferedOutputStream;
 import java.io.InputStreamReader;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.FileInputStream;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.File;
 import java.util.StringTokenizer;
 import java.util.Properties;
 import java.util.regex.Pattern;
+import java.util.UUID;
 
 import java.util.TimeZone;
 import java.util.Date;
@@ -38,11 +44,8 @@ public class AliadoProcessor {
 	protected SFTPClient cliente;
 	protected DataWrapper dw;
 
-	//pipes para generar el archivo de salida. (instanciar solo si es necesario.)
-	private PipedInputStream pis = new PipedInputStream();
-	private PipedOutputStream pos = new PipedOutputStream();
-	private BufferedOutputStream bos = null;
-	
+	private String tmp_file_id = null;
+	private PrintWriter pw = null;
 
 	protected String in_separador = "|";
 	protected boolean in_header = false;
@@ -106,28 +109,17 @@ public class AliadoProcessor {
 			log.error("No se pudo cargar la configuración del módulo desde el archivo: "+MEDA_PROPERTIES_FILENAME);
 			log.error(ex.getMessage());
 		}
-		try {
-			pos.connect(pis);		
-			bos = new BufferedOutputStream(pos);
-		} catch (IOException ex) {
-			log.error("No se pudieron conectar los flujos de entrada y salida para la generación de archivos de salida.");
-			log.error(ex.getMessage());
-		}
-
 	}
 
 	protected boolean escribirRespuesta(String linea) { 
 		boolean flag = false;
 		try {
-			if(bos != null) {
-					byte[] linea_bytes = linea.getBytes();
-					log.debug("Se escribirán "+linea_bytes.length+" bytes en el flujo de salida.");
-					bos.write(linea_bytes, 0, linea_bytes.length);
-					bos.write(endline, 0, endline.length);
-					flag = true;
-			} else {
-				log.warn("No hay un flujo de salida para escribir la respuesta.");
-			}
+			if(pw == null) {
+				pw = new PrintWriter(new BufferedWriter(new FileWriter(getTempFile())));
+				log.debug("Se ha inicializado un printwriter para el archivo de salida.");
+			} 
+			pw.println(linea);
+			flag = true;
 		} catch(IOException ex) {
 			log.error("No se pudo escribir una linea en el flujo se salida.");
 			log.error(ex.getMessage());
@@ -139,12 +131,15 @@ public class AliadoProcessor {
 	protected InputStream recuperarRespuesta() {
 		InputStream r_is = null;
 		try {
-			if(bos != null) {
-				log.debug("Se limpiará el canal outputstream de salida.");
-				bos.flush();
-				log.debug("Se cerrará el canal outputstream de salida.");
-				bos.close();
-				r_is = pis;
+			if(pw != null) {
+				log.debug("Se limpiará el printWriter.");
+				pw.flush();
+				log.debug("Se cerrará el printWriter.");
+				pw.close();
+				pw = null;
+				r_is = new FileInputStream(getTempFile());
+			} else if(pw == null && tmp_file_id != null) {
+				r_is = new FileInputStream(getTempFile());
 			} else {
 				log.warn("No hay un flujo de salida en el que se hubiera podido escribir una respuesta.");
 			}
@@ -152,8 +147,19 @@ public class AliadoProcessor {
 			log.error("No se pudo finalizar el flujo de salida para alimentar totalmente la entrada del archivo de respuesta.");
 			log.error(ex.getMessage());
 		} finally {
+			log.debug("Se devolverá un flujo de salida "+((r_is != null) ? "valido":"nulo"));
 			return r_is;
 		}
+	}
+
+	protected File getTempFile() {
+		File tmp_file = null;
+		if(tmp_file_id == null) {
+			tmp_file_id = socio.getNombre().toLowerCase()+"_"+UUID.randomUUID().toString()+".tmp";
+		}
+		tmp_file = new File(File.separator+"tmp"+File.separator+tmp_file_id);
+		log.debug("Se generará un archivo en la ruta: "+tmp_file.getAbsolutePath()+" para guardar temporalmente la salida de este proceso.");
+		return tmp_file;
 	}
 
 	public void release() {

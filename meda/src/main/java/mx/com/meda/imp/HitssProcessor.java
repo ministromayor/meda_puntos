@@ -29,8 +29,6 @@ import mx.com.meda.TipoDeArchivo;
 
 public class HitssProcessor extends AliadoProcessor implements Processor {
 
-	private String file_name = null;
-
 	public HitssProcessor() {
 		super(Socio.HITSS);
 		log = Logger.getLogger(this.getClass());
@@ -42,7 +40,7 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 		String[] trailer = null;
 		try {
 			if( cliente.conectar() )  {
-				file_name = cliente.lastAddedInFileName(buildInputFilename());
+				String file_name = cliente.lastAddedInFileName(buildInputFilename());
 				log.info("Se cargará el achivo: "+file_name);
 				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
 				String linea = null;	
@@ -68,15 +66,16 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 						lines++;
 					}
 				}
-				if( validarTrailer(trailer, lines) ) {
-				//if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ALTAS.getId(), file_name) ) {
-					//this.procesarSalida();
+				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ALTAS.getId(), file_name) ) {
+					cliente.backupInFile(file_name);	
+					cliente.desconectar();
+					cliente = null;
+					this.procesarSalida();
 					log.info("Se terminó el procesamiento exitosamente.");
 				} else {
 					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
 				}
 				br.close();
-				cliente.desconectar();
 			}
 		} catch( SftpException ex ) {
 			log.error("No se puedo procesar la entrada.");
@@ -86,26 +85,12 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 		}
 	}
 
-	public boolean workarround() {
-		try {
-			String file_name = buildInputFilename();
-			if(dw.procArchivoCarga(TipoDeArchivo.RECIBE_ALTAS.getId(), file_name)) {
-				log.info("Se ejecutó el procesamiento de la carga en bbdd.");
-			} else {
-				log.error("No Se ejecutó el procesamiento de la carga en bbdd.");
-			}
-		} catch( Exception ex ) {
-			ex.printStackTrace();
-		} finally {
-			return true;
-		}
-	}
-
 	public boolean procesarSalida() {
 		try {
+			String out_filename = buildOutputFilename();
+			log.debug("Se comenzará la generación del archivo de salida ("+out_filename+")");
+			cliente = new SFTPClient(Socio.HITSS_SALIDA);
 			if(cliente.conectar()) {
-				String out_filename = buildOutputFilename();
-				log.debug("Se comenzará la generación del archivo de salida ("+out_filename+")");
 				List<Object[]> filas = dw.selArchivoSalida(TipoDeArchivo.RESPUESTA_ALTAS.getId());
 				if(!filas.isEmpty()) {
 					for(Object[] arreglo : filas) {
@@ -143,11 +128,11 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 	}
 
 	private String buildOutputFilename() {
-		String date_format = "yyyyMMddHHmm";
+		String date_format = "yyyyMMdd";
 		DateFormat df = new SimpleDateFormat(date_format);
 		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
 		String date = df.format(new Date());
-		out_nombre = "PSF_RespuestaRH"+date+".acc";
+		out_nombre = "Hitss_Altas"+date+".acc.out";
 		log.info("Se reportará el siguiente archivo: "+out_nombre);
 		return out_nombre;
 	}

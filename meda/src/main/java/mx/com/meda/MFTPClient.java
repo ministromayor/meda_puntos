@@ -82,6 +82,10 @@ public class MFTPClient {
 
 		val = settings.getProperty(lc_peerName + ".out");
 		cfg_out_dir = val != null ? val : cfg_out_dir;
+
+		for(String propiedad : peer_properties_keys) {
+			log.debug("propiedad "+propiedad+": "+settings.getProperty(propiedad));
+		}
 	}
 	
 	public boolean conectar() {

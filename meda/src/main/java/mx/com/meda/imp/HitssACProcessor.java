@@ -29,6 +29,8 @@ import mx.com.meda.TipoDeArchivo;
 
 public class HitssACProcessor extends AliadoProcessor implements Processor {
 
+	private String file_name = null;
+
 	public HitssACProcessor() {
 		super(Socio.HITSS_ACREDITACIONES);
 		log = Logger.getLogger(this.getClass());
@@ -40,42 +42,51 @@ public class HitssACProcessor extends AliadoProcessor implements Processor {
 		String[] trailer = null;
 		try {
 			if( cliente.conectar() )  {
-				String file_name = cliente.lastAddedInFileName(buildInputFilename());
-				log.info("Se cargará el achivo: "+file_name);
-				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
-				String linea = null;	
-				while( (linea = br.readLine()) != null ) {
-					log.debug(">>"+linea);
-					String[] values = new String[in_campos+1];
-					values[0] = file_name;
-					log.debug("Se separará la cadena con \""+in_separador+"\"");
-					String[] tokens = linea.split(Pattern.quote(in_separador));
+				file_name = cliente.lastAddedInFileName(buildInputFilename());
+				if(file_name.length() > 0) {
+					BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
+					log.info("Se cargará el achivo: "+file_name);
 
-					if(((tokens.length != in_campos) && br.ready()) ||
-						((!br.ready() && !in_trailer) && (tokens.length != in_campos))) {
-						log.error("La linea ["+linea+"] contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
-						tokens = null;
-					} else if(!br.ready() && in_trailer) {
-						log.debug("TRAILER: "+linea);
-						trailer = tokens;
-						tokens = null;
-					} 
-					if(tokens != null ) {
-						System.arraycopy(tokens, 0, values, 1, in_campos);
-						dw.cargarLinea(TipoDeArchivo.RECIBE_ACREDITACIONES.getId(), values);
-						lines++;
+					String linea = null;	
+					while( (linea = br.readLine()) != null ) {
+						log.debug(">>"+linea);
+						String[] values = new String[in_campos+1];
+						values[0] = file_name;
+						log.debug("Se separará la cadena con \""+in_separador+"\"");
+						String[] tokens = linea.split(Pattern.quote(in_separador));
+
+						if(((tokens.length != in_campos) && br.ready()) ||
+							((!br.ready() && !in_trailer) && (tokens.length != in_campos))) {
+							log.error("La linea ["+linea+"] contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
+							tokens = null;
+						} else if(!br.ready() && in_trailer) {
+							log.debug("TRAILER: "+linea);
+							trailer = tokens;
+							tokens = null;
+						} 
+						if(tokens != null ) {
+							System.arraycopy(tokens, 0, values, 1, in_campos);
+							dw.cargarLinea(TipoDeArchivo.RECIBE_ACREDITACIONES.getId(), values);
+							lines++;
+						}
 					}
-				}
-				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ACREDITACIONES.getId(), file_name) ) {
-					cliente.desconectar();
-					this.procesarSalida();
+					if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ACREDITACIONES.getId(), file_name) ) {
+						cliente.backupInFile(file_name);	
+						cliente.desconectar();
+						cliente = null;
+						this.procesarSalida();
+						log.info("Se terminó el procesamiento exitosamente.");
+					} else {
+						log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+					}
+					br.close();
 				} else {
-					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+					log.warn("No hay un archivo de entrada para procesar.");
+					cliente.desconectar();
 				}
-				br.close();
 			}
 		} catch( SftpException ex ) {
-			log.error("No se puedo procesar la entrada.");
+			log.error("No se pudo procesar la entrada.");
 			log.warn(ex.getMessage());
 		} finally {
 			return true;
@@ -166,22 +177,17 @@ public class HitssACProcessor extends AliadoProcessor implements Processor {
 		return trailer;
 	}
 
-
 	private String buildInputFilename() {
 		String date_format = "ddMMyyyy";
 		DateFormat df = new SimpleDateFormat(date_format);
 		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
 		String date = df.format(new Date());
-		in_nombre = "HTS"+date+"01.acc";
+		in_nombre = "HTS"+date+"??.acc";
 		return in_nombre;
 	}
 
 	private String buildOutputFilename() {
-		String date_format = "ddMMyyyy";
-		DateFormat df = new SimpleDateFormat(date_format);
-		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
-		String date = df.format(new Date());
-		out_nombre = "HTS"+date+"01.acc.out";
+		out_nombre = file_name+".out";
 		log.info("Se reportará el siguiente archivo: "+out_nombre);
 		return out_nombre;
 	}
@@ -200,10 +206,6 @@ public class HitssACProcessor extends AliadoProcessor implements Processor {
 			flag = true;
 		}
 		return flag;
-	}
-
-	public boolean workarround() {
-		return true;
 	}
 
 }
