@@ -17,7 +17,7 @@ public class JobSanborns {
 		proc.release();
 	}
 
-	@Schedule(second="0", minute="*/10", hour="*", persistent=false)
+	@Schedule(second="0", minute="*/15", hour="*", persistent=false)
 	public void salida() {
 		Processor proc = ProcessorFactory.getProcessorInstance(Socio.SANBORNS);
 		proc.procesarSalida();

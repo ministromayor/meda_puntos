@@ -182,7 +182,7 @@ public class DataWrapper {
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int col_count = rsmd.getColumnCount();
 			if(rs != null && !rs.isBeforeFirst()) {
-				log.error("No hay registros en el retorno de la ejecución del sp: procArchivoCarga");;
+				log.error("No hay registros en el retorno de la ejecución del sp: selArchivoSalida");;
 			} else {
 				while(rs.next()) {
 					Object[] a_fila = new Object[col_count];

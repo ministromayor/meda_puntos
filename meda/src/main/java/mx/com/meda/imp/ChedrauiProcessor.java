@@ -173,7 +173,7 @@ public class ChedrauiProcessor extends AliadoProcessor implements Processor {
 		DateFormat df = new SimpleDateFormat(date_format);
 		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
 		String date = df.format(new Date());
-		out_nombre = "CDI"+date+"RES.acc";
+		out_nombre = "CDI"+date+".acc";
 		log.info("Se reportará el siguiente archivo: "+out_nombre);
 		return out_nombre;
 	}

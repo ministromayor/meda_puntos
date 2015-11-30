@@ -29,6 +29,8 @@ import mx.com.meda.TipoDeArchivo;
 
 public class HitssProcessor extends AliadoProcessor implements Processor {
 
+	String file_name = null;
+
 	public HitssProcessor() {
 		super(Socio.HITSS);
 		log = Logger.getLogger(this.getClass());
@@ -40,10 +42,11 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 		String[] trailer = null;
 		try {
 			if( cliente.conectar() )  {
-				String file_name = cliente.lastAddedInFileName(buildInputFilename());
+				file_name = cliente.lastAddedInFileName(buildInputFilename());
 				log.info("Se cargará el achivo: "+file_name);
 				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
 				String linea = null;	
+
 				while( (linea = br.readLine()) != null ) {
 					log.debug(">>"+linea);
 					String[] values = new String[in_campos+1];
