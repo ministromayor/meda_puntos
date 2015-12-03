@@ -115,9 +115,8 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 				escribirRespuesta(buildHeader(file_name));
 				for(Object[] arreglo : filas) {
 					StringBuilder sb = new StringBuilder();
-					for(int i = 0; i < (out_campos-1); i++) {
+					for(int i = 0; i < arreglo.length; i++) {
 						sb.append(arreglo[i]);
-						registros++;
 						// El campo 6 (indice 5) contiene los puntos que serán cargados.
 						if(i == 5) {
 							try {
@@ -130,7 +129,7 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 							}
 						}
 					}
-					sb.append(arreglo[out_campos-1]);
+					registros++;
 					String linea = sb.toString();
 					log.info("<<"+linea);
 					escribirRespuesta(linea);
@@ -232,7 +231,7 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 		String cmp_02 = "CARSO";
 		String cmp_03 = df.format(new Date());
 		String cmp_04 = "                ";
-		String cmp_05 = cmp_04;
+		String cmp_05 = cmp_03;
 		String cmp_06 = (file_name.substring(0, file_name.lastIndexOf('.')).toUpperCase())+"TXT";
 		String cmp_07 = "00";
 		String cmp_08 = "                                                                                                                                       ";

@@ -194,6 +194,7 @@ public class DataWrapper {
 			cstmt.setInt(2, peer.getId());
 			cstmt.setInt(3, tipo_de_archivo);
 			ResultSet rs = cstmt.executeQuery();
+			log.debug("Se invocó al sp selArchivoSalida con los parametros ("+peer.getId()+", "+tipo_de_archivo+").");
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int col_count = rsmd.getColumnCount();
 			if(rs != null && !rs.isBeforeFirst()) {
