@@ -78,6 +78,7 @@ public class HitssACProcessor extends AliadoProcessor implements Processor {
 						log.info("Se terminó el procesamiento exitosamente.");
 					} else {
 						log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+						dw.limpiarRegistrosFallidos(file_name);
 					}
 					br.close();
 				} else {
@@ -138,12 +139,12 @@ public class HitssACProcessor extends AliadoProcessor implements Processor {
 				} else {
 					log.warn("No se obtuvieron registros para generar un archivo de respuesta.");
 				}
-				cliente.desconectar();
 			}
 		} catch( SftpException ex ) {
 			log.error("Error al abrir o cerrar la conexión con el sftp.");
 			log.debug(ex.getMessage());
 		} finally {
+			cliente.desconectar();
 			return true;
 		}
 	}

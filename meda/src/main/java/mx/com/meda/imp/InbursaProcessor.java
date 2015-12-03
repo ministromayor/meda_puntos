@@ -30,6 +30,7 @@ import mx.com.meda.TipoDeArchivo;
 public class InbursaProcessor extends AliadoProcessor implements Processor {
 
 	private String file_name = null;
+	private int lines = 0;
 
 	public InbursaProcessor() {
 		super(Socio.INBURSA);
@@ -38,13 +39,13 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 
 	public boolean procesarEntrada() {
 		log.debug("Se comenzará la lectura del archivo de entrada.");
-		int lines = 0;
 		boolean valid_trailer = false;
 		boolean valid_header = false;
 		boolean proc_header = false;
 		try {
 			if( cliente.conectar() )  {
-				int[] map = new int[]{2,10,7,9,16,7,10,14,15,15,15,15,16,3,12,3,31};
+				//int[] map = new int[]{2,10,7,9,16,7,10,14,15,15,15,15,16,3,12,3,31};
+				int[] map = new int[]{2,10,7,9,16,7,10,14,15,15,15,15,31,3,31};
 				file_name = cliente.lastAddedInFileName(buildInputFilename());
 				if( file_name.length() > 0 ) {
 					log.info("Se cargará el achivo: "+file_name);
@@ -81,21 +82,22 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 						}
 					}
 					if( valid_trailer && valid_header && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ACREDITACIONES.getId(), file_name) ) {
+						cliente.backupInFile(file_name);	
 						this.procesarSalida();
 					} else {
 						log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+						dw.limpiarRegistrosFallidos(file_name);
 					}
 					br.close();
-					cliente.desconectar();
 				} else {
 					log.warn("No hay un archivo de entrada para procesar.");
-					cliente.desconectar();
 				}
 			}
 		} catch( SftpException ex ) {
 			log.error("No se puedo procesar la entrada.");
 			log.warn(ex.getMessage());
 		} finally {
+			cliente.desconectar();
 			return true;
 		}
 	}
@@ -181,9 +183,10 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 	private boolean validarTrailer(String trailer) {
 		boolean flag = false;
 		if( trailer.length() == in_t_campos ) {
-			int[] map = new int[]{2,6,8,8,8,8,8,8,14,129};
+			//int[] map = new int[]{2,6,8,8,8,8,8,8,14,129};
+			int[] map = new int[]{2,6,8,8,175};
 			String[] tokens = transformar(trailer, map);
-			flag = validarTrailer(tokens, 2);
+			flag = validarTrailer(tokens, lines);
 		}
 		return flag;
 	}
@@ -207,9 +210,11 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 		boolean flag = false;
 		if(in_trailer) {
 			int lineas_recibidas = Integer.valueOf(tokens[1]).intValue();
-			if((tokens.length == in_t_campos) && (lineas_recibidas == registros)) {
+			log.debug("El trailer indica: "+lineas_recibidas);
+			if(lineas_recibidas == registros) {
 				flag = true;
 			} 
+			log.debug("El proceso leyó: "+registros);
 			log.info("El trailer es: "+ (flag ? "Valido" : "Erroneo") +" para "+registros+" registros.");
 		} else {
 			//este es un truco, se puede mejorar.

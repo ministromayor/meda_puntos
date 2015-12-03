@@ -54,16 +54,18 @@ public class HIDROSINAProcessor extends AliadoProcessor implements Processor {
 					}
 				}
 				if( dw.procArchivoCarga(1, file_name) ) {
+					cliente.backupInFile(file_name);	
 					this.procesarSalida();
 				} else {
 					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+					dw.limpiarRegistrosFallidos(file_name);
 				}
 				br.close();
-				cliente.desconectar();
 			}
 		} catch( SftpException ex ) {
 			ex.printStackTrace();
 		} finally {
+			cliente.desconectar();
 			return true;
 		}
 	}

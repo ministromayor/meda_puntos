@@ -22,6 +22,8 @@ import java.io.IOException;
 
 public class SFTPClient {
 
+	private boolean isConnected = false;
+
 	private String 	cfg_host 	= "127.0.0.1";
 	private String 	cfg_path 	= "./Entrada";
 	private int 		cfg_port 	= 22;
@@ -108,7 +110,8 @@ public class SFTPClient {
 		if(sftp != null) { 
 			sftp.connect();
 		}
-		return (session.isConnected() & sftp.isConnected());
+		isConnected = (session.isConnected() & sftp.isConnected());
+		return isConnected;
 	}
 
 
@@ -197,8 +200,16 @@ public class SFTPClient {
 	}
 
 	public boolean desconectar() {
-		sftp.disconnect();
-		session.disconnect();
+		if(isConnected) {
+			log.debug("Se desconectará la sesión SFTP");
+			session.disconnect();
+			log.debug("Se desconectará el canal SFTP");
+			sftp.disconnect();
+			log.debug("Se finalizó la conexión con el SFTP");
+			isConnected = false;
+		} else {
+			log.error("La conexión está cerrada con este SFTP.");
+		}
 		return true;
 	}
 

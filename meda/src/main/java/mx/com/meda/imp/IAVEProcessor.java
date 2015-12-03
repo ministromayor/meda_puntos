@@ -67,17 +67,19 @@ public class IAVEProcessor extends AliadoProcessor implements Processor {
 					}
 				}
 				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
+					cliente.backupInFile(file_name);	
 					this.procesarSalida();
 				} else {
-					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+					log.error("Ocurrió un error durante el proceso de entrada.");
+					dw.limpiarRegistrosFallidos(file_name);
 				}
 				br.close();
-				cliente.desconectar();
 			}
 		} catch( SftpException ex ) {
 			log.error("No se puedo procesar la entrada.");
 			log.warn(ex.getMessage());
 		} finally {
+			cliente.desconectar();
 			return true;
 		}
 	}

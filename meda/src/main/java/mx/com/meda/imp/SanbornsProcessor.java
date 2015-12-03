@@ -74,13 +74,13 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 					if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
 						log.info("Se completó la recepción y procesamiento de archivos de datos.");
 					} else {
-						log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+						log.error("Ocurrió un error durante el proceso de entrada.");
+						dw.limpiarRegistrosFallidos(file_name);
 					}
 					br.close();
 				} else {
 					log.error("No existe el archivo "+file_name+" en el servidor ftp.");
 				}
-				ftp_client.desconectar();
 				log.info("Se terminó el procesamiento de entrada exitosamente.");
 			}
 		} catch( Exception ex ) {
@@ -88,6 +88,7 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 			log.warn(ex.getMessage());
 			ex.printStackTrace();
 		} finally {
+			ftp_client.desconectar();
 			return true;
 		}
 	}
@@ -136,13 +137,13 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 				} else {
 					log.warn("No se obtuvieron registros para generar un archivo de respuesta.");
 				}
-				ftp_client.desconectar();
 				log.info("Se terminó el procesamiento de salida exitosamente.");
 			}
 		} catch( Exception ex ) {
 			log.error("Error al abrir o cerrar la conexión con el sftp.");
 			log.error(ex.getMessage());
 		} finally {
+			ftp_client.desconectar();
 			return true;
 		}
 	}
@@ -159,9 +160,6 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 		sb.append("|");
 		//Fecha de recepción.
 		sb.append(date+"|");
-		//Total puntos
-		sb.append(String.format("%012d", new Integer(monto)));
-		sb.append("|");
 		//Identificador.
 		sb.append("SNB");
 	
@@ -174,7 +172,7 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 		DateFormat df = new SimpleDateFormat(date_format);
 		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
 		String date = df.format(new Date());
-		in_nombre = "SNB"+date+".acc";
+		in_nombre = "SNB"+date+"RES.acc";
 		return in_nombre;
 	}
 
@@ -183,7 +181,7 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 		DateFormat df = new SimpleDateFormat(date_format);
 		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
 		String date = df.format(new Date());
-		out_nombre = "SNB"+date+"RES.acc";
+		out_nombre = "SNB"+date+".acc";
 		log.info("Se reportará el siguiente archivo: "+out_nombre);
 		return out_nombre;
 	}

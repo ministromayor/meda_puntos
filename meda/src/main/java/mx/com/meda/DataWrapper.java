@@ -140,6 +140,21 @@ public class DataWrapper {
 		}
 	}
 
+	public void limpiarRegistrosFallidos(String file_name) {
+		try {
+			String ps_material = "delete from CrgArchivos where Carga_strArchivo = ?;";
+			log.debug("El material para la sentencia peparada es: "+ps_material);
+			PreparedStatement pstm = con.prepareStatement(ps_material);
+			pstm.setString(1, file_name);
+			pstm.executeUpdate();
+			log.debug("Se eliminó la información temporal de la tabla de carga de archivo.");
+		} catch (SQLException ex) {
+			log.error("No se pudo eliminar la información temporal de la tabla de carga de archivo.");
+			log.error(ex.getMessage());
+		}
+		
+	}
+
 	public boolean procArchivoCarga(int tipo_de_archivo, String nombre_de_archivo) {
 		boolean flag = false;
 		try {

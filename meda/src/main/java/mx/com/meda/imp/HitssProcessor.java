@@ -77,12 +77,14 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 					log.info("Se terminó el procesamiento exitosamente.");
 				} else {
 					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+					dw.limpiarRegistrosFallidos(file_name);
 				}
 				br.close();
 			}
 		} catch( SftpException ex ) {
 			log.error("No se puedo procesar la entrada.");
 			log.warn(ex.getMessage());
+			cliente.desconectar();
 		} finally {
 			return true;
 		}
@@ -112,11 +114,11 @@ public class HitssProcessor extends AliadoProcessor implements Processor {
 				} else {
 					log.warn("No se obtuvieron registros para generar un archivo de respuesta.");
 				}
-				cliente.desconectar();
 			}
 		} catch( Exception ex ) {
 			ex.printStackTrace();
 		} finally {
+			cliente.desconectar();
 			return true;
 		}
 	}

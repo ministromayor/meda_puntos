@@ -177,7 +177,9 @@ public class MFTPClient {
 				log.debug("Se está trabajando en el directorio: "+ftp.printWorkingDirectory());
 			}*/
 			is = ftp.retrieveFileStream(lf);
-			download = true;
+			if(is != null) {
+				download = true;
+			}
 		} catch ( FTPConnectionClosedException ex ) {
 			log.error("No se pudo abrir un flujo de entrada desde el FTP.");
 			log.error(ex.getMessage());
@@ -199,13 +201,23 @@ public class MFTPClient {
 		}
 	}
 
-	public boolean desconectar() throws IOException {
-		if(download && !ftp.completePendingCommand()) {
-			log.error("La carga o descarga  del FTP fallo al cierre.");
+	public boolean desconectar() {
+		try {
+			log.debug("Se inicia el proceso de desconexión.");
+			if(download && !ftp.completePendingCommand()) {
+				log.error("La carga o descarga  del FTP fallo al cierre.");
+			}
+			log.debug("Se cerara la sesión con el FTP.");
+			ftp.logout();
+			log.debug("Se cerara el canal con el FTP.");
+			ftp.disconnect();
+			log.debug("Se cerró la conexión con el FTP.");
+		} catch(IOException ex) {
+			log.error("No se pudo completar la transferencia pendiente en la conexión previo al cierre de la sesión");
+			log.debug(ex.getMessage());
+		} finally {
+			return true;
 		}
-		ftp.logout();
-		ftp.disconnect();
-		return true;
 	}
 
 }
