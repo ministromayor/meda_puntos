@@ -8,6 +8,7 @@ import mx.com.meda.SFTPClient;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.util.StringTokenizer;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -24,59 +25,96 @@ import com.jcraft.jsch.SftpException;
 import com.jcraft.jsch.JSchException;
 
 import mx.com.meda.Socio;
+import mx.com.meda.TipoDeArchivo;
 
-public class HIDROSINAProcessor extends AliadoProcessor implements Processor {
+public class HidrosinaProcessor extends AliadoProcessor implements Processor {
 
-	public HIDROSINAProcessor() {
+	public HidrosinaProcessor() {
 		super(Socio.HIDROSINA);
 		log = Logger.getLogger(this.getClass());
 	}
 
 	public boolean procesarEntrada() {
 		log.debug("Se comenzará la lectura del archivo de entrada.");
+		int lines = 0;
+		String[] trailer = null;
 		try {
 			if( cliente.conectar() )  {
-				String file_name = cliente.lastAddedInFileName();
+				String file_name = cliente.lastAddedInFileName(buildInputFilename());
 				log.info("Se cargará el achivo: "+file_name);
-				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile()));
+				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
 				String linea = null;	
 				while( (linea = br.readLine()) != null ) {
-					log.debug(linea);
+					log.info(">>"+linea);
 					String[] values = new String[in_campos+1];
 					values[0] = file_name;
 					log.debug("Se separará la cadena con \""+in_separador+"\"");
 					String[] tokens = linea.split(Pattern.quote(in_separador));
-					if(tokens.length != in_campos) {
-						log.error("La linea contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
-					} else {
+
+					if(((tokens.length != in_campos) && br.ready()) ||
+						((!br.ready() && !in_trailer) && (tokens.length != in_campos))) {
+						log.error("La linea ["+linea+"] contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
+						tokens = null;
+					} else if(!br.ready() && in_trailer) {
+						log.info("Se considerará la cadena "+linea+" como trailer.");
+						trailer = tokens;
+						tokens = null;
+					} 
+					if(tokens != null ) {
 						System.arraycopy(tokens, 0, values, 1, in_campos);
-						dw.cargarLinea(1, values);
+						dw.cargarLinea(TipoDeArchivo.RECIBE_TICKETS.getId(), values);
+						lines++;
 					}
 				}
-				if( dw.procArchivoCarga(1, file_name) ) {
+				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
 					cliente.backupInFile(file_name);	
 					this.procesarSalida();
 				} else {
-					log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
+					log.error("Ocurrió un error durante el proceso de entrada.");
 					dw.limpiarRegistrosFallidos(file_name);
 				}
 				br.close();
 			}
 		} catch( SftpException ex ) {
-			ex.printStackTrace();
+			log.error("No se pudo procesar la entrada.");
+			log.warn(ex.getMessage());
 		} finally {
 			cliente.desconectar();
 			return true;
 		}
 	}
 
-	public boolean procesarSalida() { 
-		log.debug("No se genera archivo de salida para OSTAR");
+	public boolean procesarSalida() {
 		return true;
 	}
 
-	public boolean workarround() {
-		return true;
+	private String buildInputFilename() {
+		String date_format = "ddMMyyyy";
+		DateFormat df = new SimpleDateFormat(date_format);
+		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
+		String date = df.format(new Date());
+		in_nombre = "HID*.acc";
+		return in_nombre;
+	}
+
+	private String buildOutputFilename() {
+		return out_nombre;
+	}
+
+	private boolean validarTrailer(String[] tokens, int registros) {
+		boolean flag = false;
+		if(in_trailer) {
+			int lineas_recibidas = Integer.valueOf(tokens[0]).intValue();
+			if((tokens.length == in_t_campos) && (lineas_recibidas == registros)) {
+				flag = true;
+			} else {
+				flag = false;
+			}
+			log.info("El trailer es: "+ (flag ? "Valido" : "Erroneo") +" para "+registros+" registros.");
+		} else {
+			flag = true;
+		}
+		return flag;
 	}
 
 }
