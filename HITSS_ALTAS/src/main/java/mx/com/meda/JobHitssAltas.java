@@ -9,7 +9,7 @@ public class JobHitssAltas {
 
 	Logger log = Logger.getLogger(this.getClass());
 
-	@Schedule(second="0", minute="0", hour="22" persistent=false)
+	@Schedule(second="0", minute="0", hour="22", persistent=false)
 	public void entrada() {
 		Processor proc = ProcessorFactory.getProcessorInstance(Socio.HITSS);
 		proc.procesarEntrada();

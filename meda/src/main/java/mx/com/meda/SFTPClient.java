@@ -18,7 +18,9 @@ import java.text.SimpleDateFormat;
 import java.text.ParseException;
 
 import java.io.InputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 
 public class SFTPClient {
 
@@ -157,6 +159,15 @@ public class SFTPClient {
 		is = sftp.get(lf);
 		return is;
 	}
+
+	public InputStream readLastInFileLocalMode(String name) throws SftpException, FileNotFoundException {
+		InputStream is = null;
+		String lf = this.lastAddedFileName(cfg_in_dir, name);
+		log.debug("Guardará una copia local del archivo "+lf);
+		sftp.get(lf, "/tmp/"+name);
+		return new FileInputStream("/tmp/"+name);
+	}
+
 
 	public void backupInFile(String name) throws SftpException {
 		String path = this.lastAddedFileName(cfg_in_dir, name);

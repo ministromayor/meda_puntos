@@ -10,7 +10,7 @@ public class JobSanborns {
 
 	Logger log = Logger.getLogger(this.getClass());
 
-	@Schedule(second="0", minute="0", hour="17 persistent=false)
+	@Schedule(second="0", minute="0", hour="17", persistent=false)
 	public void entrada() {
 		Processor proc = ProcessorFactory.getProcessorInstance(Socio.SANBORNS);
 		proc.procesarEntrada();
