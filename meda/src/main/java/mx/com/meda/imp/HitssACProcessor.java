@@ -107,7 +107,7 @@ public class HitssACProcessor extends AliadoProcessor implements Processor {
 
 					for(Object[] arreglo : filas) {
 						StringBuilder sb = new StringBuilder();
-						for(int i = 0; i < arreglo.length; i++) {
+						for(int i = 0; i < (out_campos-1); i++) {
 							sb.append(arreglo[i]);
 							sb.append("|");
 							// El campo 3 (indice 2) contiene los puntos que serán cargados.

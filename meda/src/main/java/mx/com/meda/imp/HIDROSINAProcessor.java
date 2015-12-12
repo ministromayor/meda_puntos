@@ -37,14 +37,45 @@ public class HidrosinaProcessor extends AliadoProcessor implements Processor {
 	public boolean procesarEntrada() {
 		log.debug("Se comenzará la lectura del archivo de entrada.");
 		int lines = 0;
-		String[] trailer = null;
+		boolean valid_trailer = false;
+		boolean valid_header = true;
 		try {
 			if( cliente.conectar() )  {
 				String file_name = cliente.lastAddedInFileName(buildInputFilename());
 				log.info("Se cargará el achivo: "+file_name);
 				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
 				String linea = null;	
+
 				while( (linea = br.readLine()) != null ) {
+					log.debug(">> "+linea);
+					String[] values = new String[in_campos+1];
+					log.debug("Se separará la cadena con \""+in_separador+"\"");
+					String[] tokens = linea.split(Pattern.quote(in_separador));
+					values[0] = file_name;
+					if( lines == 0 && in_header ) {
+						log.debug("Se procesará el header.");
+						valid_header = true;
+					} else if(lines != 0 && !br.ready() && in_trailer && (tokens.length != in_campos)  ) {
+						log.debug("Se procesará el trailer.");
+						valid_trailer = validarTrailer(tokens, lines);
+					} else {
+						if( tokens.length == in_campos ) {
+							log.info(">>"+linea);
+						} else {
+							log.error("La linea ["+linea+"] mide "+linea.length()+" caracteres pero se esperaba que midiera "+in_campos);
+						}
+						if(tokens != null ) {
+							log.debug("Se copiarán los tokens.");
+							System.arraycopy(tokens, 0, values, 1, in_campos);
+							log.debug("Se cargarán los valores copiados desde los tokens en la base de datos.");
+							dw.cargarLinea(TipoDeArchivo.RECIBE_TICKETS.getId(), values);
+							tokens = null;
+							lines++;
+						}
+					}
+				}
+
+				/*while( (linea = br.readLine()) != null ) {
 					log.info(">>"+linea);
 					String[] values = new String[in_campos+1];
 					values[0] = file_name;
@@ -55,18 +86,18 @@ public class HidrosinaProcessor extends AliadoProcessor implements Processor {
 						((!br.ready() && !in_trailer) && (tokens.length != in_campos))) {
 						log.error("La linea ["+linea+"] contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
 						tokens = null;
-					} else if(!br.ready() && in_trailer) {
+					} else if(!br.ready() && in_trailer && tokens.length != in_campos ) {
 						log.info("Se considerará la cadena "+linea+" como trailer.");
 						trailer = tokens;
 						tokens = null;
 					} 
 					if(tokens != null ) {
+						lines++;
 						System.arraycopy(tokens, 0, values, 1, in_campos);
 						dw.cargarLinea(TipoDeArchivo.RECIBE_TICKETS.getId(), values);
-						lines++;
 					}
-				}
-				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
+				}*/
+				if( valid_trailer && valid_header && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
 					cliente.backupInFile(file_name);	
 					this.procesarSalida();
 				} else {

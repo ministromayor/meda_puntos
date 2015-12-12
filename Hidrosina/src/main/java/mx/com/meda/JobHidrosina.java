@@ -12,16 +12,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import com.jcraft.jsch.JSchException;
 
-import mx.com.meda.imp.SanbornsProcessor;
-
-
-@Singleton(name = "JobInbursa")
-public class JobInbursa {
+@Singleton(name = "JobHidrosina")
+public class JobHidrosina {
 
 	Logger log = Logger.getLogger(this.getClass());
-	@Schedule(second="0", minute="30", hour="7", persistent=false)
-	public void inbursa() {
-		Processor proc = ProcessorFactory.getProcessorInstance(Socio.INBURSA);
+	@Schedule(second="0", minute="0", hour="1", persistent=false)
+	public void hidrosina() {
+		Processor proc = ProcessorFactory.getProcessorInstance(Socio.HIDROSINA);
 		proc.procesarEntrada();
 		proc.release();
 	}

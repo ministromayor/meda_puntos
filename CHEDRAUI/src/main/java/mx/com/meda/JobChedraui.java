@@ -19,14 +19,14 @@ import mx.com.meda.imp.SanbornsProcessor;
 public class JobChedraui {
 
 	Logger log = Logger.getLogger(this.getClass());
-	@Schedule(second="30", minute="*/10", hour="*", persistent=false)
+	@Schedule(second="0", minute="0", hour="7", persistent=false)
 	public void entrada() {
 		Processor proc = ProcessorFactory.getProcessorInstance(Socio.CHEDRAUI);
 		proc.procesarEntrada();
 		proc.release();
 	}
 
-	@Schedule(second="0", minute="*/10", hour="*", persistent=false)
+	@Schedule(second="0", minute="30", hour="1", persistent=false)
 	public void salida() {
 		Processor proc = ProcessorFactory.getProcessorInstance(Socio.CHEDRAUI);
 		proc.procesarSalida();

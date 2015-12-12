@@ -19,7 +19,7 @@ import mx.com.meda.imp.SanbornsProcessor;
 public class JobIave {
 
 	Logger log = Logger.getLogger(this.getClass());
-	@Schedule(second="0", minute="*/10", hour="*", persistent=false)
+	@Schedule(second="0", minute="30", hour="17", persistent=false)
 	public void inbursa() {
 		Processor proc = ProcessorFactory.getProcessorInstance(Socio.IAVE);
 		proc.procesarEntrada();
