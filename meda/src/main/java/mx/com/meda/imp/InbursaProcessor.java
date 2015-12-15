@@ -152,7 +152,7 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 		DateFormat df = new SimpleDateFormat(date_format);
 		df.setTimeZone(TimeZone.getTimeZone("America/Mexico_City"));
 		String date = df.format(new Date());
-		in_nombre = "CARS"+date+"?.TXT";
+		in_nombre = "CARS"+date+"?.???";
 		return in_nombre;
 	}
 

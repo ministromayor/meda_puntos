@@ -16,7 +16,7 @@ import com.jcraft.jsch.JSchException;
 public class JobHidrosina {
 
 	Logger log = Logger.getLogger(this.getClass());
-	@Schedule(second="0", minute="0", hour="1", persistent=false)
+	@Schedule(second="0", minute="30", hour="2", persistent=false)
 	public void hidrosina() {
 		Processor proc = ProcessorFactory.getProcessorInstance(Socio.HIDROSINA);
 		proc.procesarEntrada();
