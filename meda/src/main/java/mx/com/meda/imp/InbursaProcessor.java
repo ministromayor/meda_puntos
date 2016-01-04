@@ -31,6 +31,7 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 
 	private String file_name = null;
 	private int lines = 0;
+	private boolean empty_response = false;
 
 	public InbursaProcessor() {
 		super(Socio.INBURSA);
@@ -50,23 +51,25 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 				if( file_name.length() > 0 ) {
 					log.info("Se cargará el achivo: "+file_name);
 					buildHeader(file_name);
-					BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
+					BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFileLocalMode(file_name)));
 					String linea = null;	
+
 					while( (linea = br.readLine()) != null ) {
-						log.debug("RAW - >"+linea+"<");
+						log.debug(">>"+linea+"<");
 						String[] values = new String[map.length+1];
 						String[] tokens = null;
 						values[0] = file_name;
+
 						if( !proc_header && lines == 0 && in_header ) {
 							log.debug("Se procesará el header.");
 							valid_header = validarHeader(linea);
 							proc_header = true;
-						} else if(lines != 0 && !br.ready() && in_trailer ) {
+						} else if(valid_header && !br.ready() && in_trailer) {
 							log.debug("Se procesará el trailer.");
 							valid_trailer = validarTrailer(linea);
 						} else {
 							if( linea.length() == in_campos ) {
-								log.info(">>"+linea);
+								log.debug(">>"+linea);
 								tokens = transformar(linea, map);
 							} else {
 								log.error("La linea ["+linea+"] mide "+linea.length()+" caracteres pero se esperaba que midiera "+in_campos);
@@ -83,6 +86,9 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 					}
 					if( valid_trailer && valid_header && dw.procArchivoCarga(TipoDeArchivo.RECIBE_ACREDITACIONES.getId(), file_name) ) {
 						cliente.backupInFile(file_name);	
+						if( lines == 0 ) {
+							empty_response = true;
+						}
 						this.procesarSalida();
 					} else {
 						log.error("No se procesará salida debido a que ocurrió un error durante el proceso de entrada.");
@@ -97,6 +103,7 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 			log.error("No se puedo procesar la entrada.");
 			log.warn(ex.getMessage());
 		} finally {
+			log.info("Se terminó el procesamiento.");
 			cliente.desconectar();
 			return true;
 		}
@@ -106,12 +113,15 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 		log.debug("Se comenzará la generación del archivo de salida.");
 		try {
 			String out_filename = buildOutputFilename();
-			List<Object[]> filas = dw.selArchivoSalida(TipoDeArchivo.RESPUESTA_ACRETIDACIONES.getId());
+			List<Object[]> filas = null;
+			if(!empty_response) {
+				filas = dw.selArchivoSalida(TipoDeArchivo.RESPUESTA_ACRETIDACIONES.getId());
+			}
 
 			int registros = 0;
 			long monto = 0L; 
 
-			if(!filas.isEmpty()) {
+			if(!empty_response && !filas.isEmpty()) {
 				escribirRespuesta(buildHeader(file_name));
 				for(Object[] arreglo : filas) {
 					StringBuilder sb = new StringBuilder();
@@ -131,9 +141,15 @@ public class InbursaProcessor extends AliadoProcessor implements Processor {
 					}
 					registros++;
 					String linea = sb.toString();
-					log.info("<<"+linea);
+					log.debug("<<"+linea);
 					escribirRespuesta(linea);
 				}
+				escribirRespuesta(buildTrailer(registros, monto));
+				InputStream salida = recuperarRespuesta();
+				cliente.uploadOutFile(salida, out_filename);
+			} else if(empty_response) {
+				log.info("Se creará una respuesta sin registros.");
+				escribirRespuesta(buildHeader(file_name));
 				escribirRespuesta(buildTrailer(registros, monto));
 				InputStream salida = recuperarRespuesta();
 				cliente.uploadOutFile(salida, out_filename);
