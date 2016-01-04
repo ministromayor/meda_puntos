@@ -47,7 +47,7 @@ public class DataWrapper {
 			log.error("No se pudo obtener una instancia del DataSource configurado.");
 			log.debug(ex.getMessage());
 		} catch (SQLException ex ) {
-			log.error("No de pudo establecer la conexión con la instancia del datasource.");
+			log.error("No se pudo establecer la conexión con la instancia del datasource.");
 			log.debug(ex.getMessage());
 		}
 	}
@@ -211,6 +211,7 @@ public class DataWrapper {
 		} catch(SQLException ex) {
 			log.error("No se pudo invocar el sp: selArchivoSalida");
 			log.error(ex.getMessage());
+			ex.printStackTrace();
 		} finally {
 			return file_lines;
 		}

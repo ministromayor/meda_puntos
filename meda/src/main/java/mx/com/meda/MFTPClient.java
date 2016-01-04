@@ -15,6 +15,7 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPConnectionClosedException;
 
 import java.io.InputStream;
@@ -31,6 +32,8 @@ public class MFTPClient {
 	private int 		cfg_timeout = 15000;
 	private String 	cfg_in_dir	= "/Entrada";
 	private String 	cfg_out_dir	= "/Salida";
+
+	private boolean	is_passive = true;
 
 	private FTPClient ftp = null;
 
@@ -57,7 +60,8 @@ public class MFTPClient {
 			lc_peerName + ".pasw",
 			lc_peerName + ".timeout",
 			lc_peerName + ".in",
-			lc_peerName + ".out"
+			lc_peerName + ".out",
+			lc_peerName + ".passive"
 		};
 
 		String val = null;
@@ -82,6 +86,10 @@ public class MFTPClient {
 
 		val = settings.getProperty(lc_peerName + ".out");
 		cfg_out_dir = val != null ? val : cfg_out_dir;
+
+		val = settings.getProperty(lc_peerName + ".passive");
+		is_passive = val != null ? Boolean.parseBoolean(val) : true;
+
 
 		for(String propiedad : peer_properties_keys) {
 			log.debug("propiedad "+propiedad+": "+settings.getProperty(propiedad));
@@ -125,8 +133,14 @@ public class MFTPClient {
 				ftp.logout();
 				log.error("Fallo la autenticación con el FTP.");
 			} else {
+				if(is_passive) {
+					ftp.enterLocalActiveMode();
+					ftp.enterRemotePassiveMode();
+					log.debug("Ahora la sesión se encuentra conectada en modo pasivo con el puerto: "+ftp.getPassivePort());
+				} else {
+					log.debug("Ahora la sesión se encuentra conectada.");
+				}
 				ftp.setFileType(FTP.ASCII_FILE_TYPE);
-				log.debug("Ahora la sesión se encuentra conectada en modo pasivo con el puerto: "+ftp.getPassivePort());
 				flag = true;
 			}
 		} catch(IOException ex) {
@@ -193,7 +207,12 @@ public class MFTPClient {
 		String path = this.cfg_out_dir+"/"+name;
 		log.info("Se subirá el archivo: "+path);
 		try {
-			ftp.storeFile(path, data);
+			if(!ftp.storeFile(path, data)) {
+				int r = ftp.getReplyCode();
+				log.error("El servidor respondió "+r);
+			} else {
+				log.debug("El archivo subió.");
+			}
 			data.close();
 		} catch( IOException ex ) {
 			log.error("No se pudo almacenar el archivo de salida del proceso.");

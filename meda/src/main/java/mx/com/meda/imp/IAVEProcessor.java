@@ -7,6 +7,7 @@ import mx.com.meda.SFTPClient;
 
 import java.io.IOException;
 import java.io.BufferedReader;
+import java.io.PushbackReader;
 import java.io.InputStreamReader;
 import java.io.InputStream;
 import java.util.StringTokenizer;
@@ -42,31 +43,41 @@ public class IAVEProcessor extends AliadoProcessor implements Processor {
 			if( cliente.conectar() )  {
 				String file_name = cliente.lastAddedInFileName(buildInputFilename());
 				log.info("Se cargará el achivo: "+file_name);
-				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFile(file_name)));
+				BufferedReader br = new BufferedReader(new InputStreamReader(cliente.readLastInFileLocalMode(file_name)));
 				String linea = null;	
+
+				boolean valid_trailer = false;
 				while( (linea = br.readLine()) != null ) {
-					log.info(">>"+linea);
+					log.debug(">>"+linea);
 					String[] values = new String[in_campos+1];
-					values[0] = file_name;
 					log.debug("Se separará la cadena con \""+in_separador+"\"");
 					String[] tokens = linea.split(Pattern.quote(in_separador));
+					values[0] = file_name;
 
-					if(((tokens.length != in_campos) && br.ready()) ||
-						((!br.ready() && !in_trailer) && (tokens.length != in_campos))) {
-						log.error("La linea ["+linea+"] contiene "+tokens.length+" elementos pero se esperaba que tuviera "+in_campos);
-						tokens = null;
-					} else if(!br.ready() && in_trailer) {
-						log.info("Se considerará la cadena "+linea+" como trailer.");
-						trailer = tokens;
-						tokens = null;
-					} 
-					if(tokens != null ) {
-						System.arraycopy(tokens, 0, values, 1, in_campos);
-						dw.cargarLinea(TipoDeArchivo.RECIBE_TICKETS.getId(), values);
-						lines++;
+					if( lines == 0 && in_header ) {
+						log.debug("No se debe procesar el header para este tipo de aliado.");
+					} else if(lines != 0 && !br.ready() && !hayDatosDisponibles(br) && in_trailer) {
+						log.debug("Se procesará el trailer.");
+						log.info("TRAILER: "+linea);
+						valid_trailer = validarTrailer(tokens, lines);
+					} else {
+						if( tokens.length == in_campos ) {
+							log.info(">>"+linea);
+						} else {
+							log.error("La linea ["+linea+"] mide "+linea.length()+" caracteres pero se esperaba que midiera "+in_campos);
+						}
+						if(tokens != null ) {
+							log.debug("Se copiarán los tokens.");
+							System.arraycopy(tokens, 0, values, 1, in_campos);
+							log.debug("Se cargarán los valores copiados desde los tokens en la base de datos.");
+							dw.cargarLinea(TipoDeArchivo.RECIBE_TICKETS.getId(), values);
+							tokens = null;
+							lines++;
+						}
 					}
+
 				}
-				if( validarTrailer(trailer, lines) && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
+				if( valid_trailer && dw.procArchivoCarga(TipoDeArchivo.RECIBE_TICKETS.getId(), file_name) ) {
 					cliente.backupInFile(file_name);	
 					this.procesarSalida();
 				} else {
@@ -100,6 +111,29 @@ public class IAVEProcessor extends AliadoProcessor implements Processor {
 	private String buildOutputFilename() {
 		return out_nombre;
 	}
+
+
+	private boolean hayDatosDisponibles(BufferedReader br) {
+		boolean flag = false;
+		try {
+			PushbackReader pbr = new PushbackReader(br);
+			int tmp = pbr.read();
+			if(tmp == -1) {
+				log.debug("Se ha llegado al final del flujo.");
+			} else {
+				pbr.unread(tmp);
+				log.debug("No se ha llegado al final de flujo.");
+				flag = true;	
+			}
+		} catch(IOException ex) {
+			log.error("No se pudo determinar si el flujo ha finalizado.");
+			log.warn(ex.getMessage());
+		} finally {
+			return flag;
+		}
+	}
+
+
 
 	private boolean validarTrailer(String[] tokens, int registros) {
 		boolean flag = false;

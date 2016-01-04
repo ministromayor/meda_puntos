@@ -25,6 +25,8 @@ import mx.com.meda.Socio;
 import mx.com.meda.TipoDeArchivo;
 import mx.com.meda.MFTPClient;
 
+import java.io.FileInputStream;
+
 public class SanbornsProcessor extends AliadoProcessor implements Processor {
 
 	MFTPClient ftp_client = null;
@@ -89,6 +91,7 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 			ex.printStackTrace();
 		} finally {
 			ftp_client.desconectar();
+			log.info("Se concluyó el procesamiento.");
 			return true;
 		}
 	}
@@ -96,8 +99,10 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 	public boolean procesarSalida() {
 		try {
 			String out_filename = buildOutputFilename();
+			InputStream salida = null;
 			log.debug("Se comenzará la generación del archivo de salida.");
 			if(ftp_client.conectar()) {
+				log.debug("Se realizó la conexión al FTP. Se inicia el procesamiento.");
 				List<Object[]> filas = dw.selArchivoSalida(TipoDeArchivo.RESPUESTA_TICKETS.getId());
 				if(!filas.isEmpty()) {
 					int numero_de_registros = filas.size();
@@ -131,7 +136,7 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 					}else {
 						log.error("Ocurrio un error al generar el trailer.");
 					}
-					InputStream salida = recuperarRespuesta();
+					salida = recuperarRespuesta();
 					ftp_client.uploadOutFile(salida, out_filename);
 					log.debug("Se almacenó el archivo en el servidor FTP.");
 				} else {
@@ -144,6 +149,7 @@ public class SanbornsProcessor extends AliadoProcessor implements Processor {
 			log.error(ex.getMessage());
 		} finally {
 			ftp_client.desconectar();
+			log.info("Se concluyó el procesamiento.");
 			return true;
 		}
 	}
